@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.10"
     application
 }
 
@@ -24,8 +25,14 @@ kotlin {
         binaries.executable()
         browser()
     }
+
     sourceSets {
-        val commonMain by getting
+        val commonMain by getting {
+            dependencies {
+                implementation("com.benasher44:uuid:0.3.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
@@ -33,9 +40,19 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-server-netty:1.6.3")
-                implementation("io.ktor:ktor-html-builder:1.6.3")
+                implementation("io.ktor:ktor-server-netty:1.6.7")
+                implementation("io.ktor:ktor-serialization:1.6.7")
+                implementation("io.ktor:ktor-html-builder:1.6.7")
+
                 implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.7.2")
+                implementation("ch.qos.logback:logback-classic:1.2.9")
+
+                implementation("org.jetbrains.exposed:exposed-core:0.36.2")
+                implementation("org.jetbrains.exposed:exposed-jdbc:0.36.2")
+
+                implementation("com.h2database:h2:2.0.202")
+                implementation("com.zaxxer:HikariCP:5.0.0")
+                implementation("org.flywaydb:flyway-core:8.3.0")
             }
         }
         val jvmTest by getting
