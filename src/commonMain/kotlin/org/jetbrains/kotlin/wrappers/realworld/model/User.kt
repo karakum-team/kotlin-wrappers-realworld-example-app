@@ -8,10 +8,16 @@ data class User(
     @Serializable(with = UuidSerializer::class)
     val id: Uuid,
     val email: String,
-    val token: String? = null,
     val username: String,
     val password: String? = null,
+    val token: String? = null,
     val bio: String? = null,
     val image: String? = null,
     val following: Boolean? = null
+)
+
+@Serializable
+data class Credentials(
+    val email: String,
+    val password: String,
 )

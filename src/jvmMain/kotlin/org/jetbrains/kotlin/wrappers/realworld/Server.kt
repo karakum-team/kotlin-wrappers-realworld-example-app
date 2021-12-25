@@ -1,15 +1,17 @@
 package org.jetbrains.kotlin.wrappers.realworld
 
-import io.ktor.application.call
+import io.ktor.application.*
+import io.ktor.features.*
 import io.ktor.html.respondHtml
 import io.ktor.http.HttpStatusCode
-import io.ktor.routing.get
-import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.http.content.resources
 import io.ktor.http.content.static
+import io.ktor.routing.*
+import io.ktor.serialization.*
 import kotlinx.html.*
+import org.jetbrains.kotlin.wrappers.realworld.db.DatabaseFactory
 
 fun HTML.index() {
     head {
@@ -27,7 +29,16 @@ fun HTML.index() {
 }
 
 fun main() {
+    DatabaseFactory.init()
+
     embeddedServer(Netty, port = 8080, host = "127.0.0.1") {
+        install(DefaultHeaders)
+        install(CallLogging)
+
+        install(ContentNegotiation) {
+            json()
+        }
+
         routing {
             get("/") {
                 call.respondHtml(HttpStatusCode.OK, HTML::index)
