@@ -1,5 +1,6 @@
 package org.jetbrains.kotlin.wrappers.realworld.service
 
+import com.benasher44.uuid.uuid4
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -8,6 +9,7 @@ import org.jetbrains.kotlin.wrappers.realworld.crypto.salt
 import org.jetbrains.kotlin.wrappers.realworld.db.tables.Users
 import org.jetbrains.kotlin.wrappers.realworld.model.Credentials
 import org.jetbrains.kotlin.wrappers.realworld.model.User
+import org.jetbrains.kotlin.wrappers.realworld.model.UserDraft
 
 class UserService {
     fun authorize(credentials: Credentials) = transaction {
@@ -34,19 +36,28 @@ class UserService {
             .singleOrNull()
     }
 
-    fun createUser(user: User) = transaction {
-        val password = requireNotNull(user.password)
+    fun createUser(userDraft: UserDraft) = transaction {
+        val password = userDraft.password
         val salt = salt()
         val hash = hash(password, salt)
 
-        Users.insert {
-            it[id] = user.id
-            it[email] = user.email
-            it[username] = user.username
+        val resultedValues = Users.insert {
+            it[id] = uuid4()
+            it[email] = userDraft.email
+            it[username] = userDraft.username
             it[this.hash] = hash
             it[this.salt] = salt
-            it[bio] = user.bio
-            it[image] = user.image
-        }
+        }.resultedValues ?: throw IllegalArgumentException("User $userDraft can not be created")
+
+
+        resultedValues
+            .map {
+                User(
+                    id = it[Users.id],
+                    email = it[Users.email],
+                    username = it[Users.username],
+                )
+            }
+            .single()
     }
 }

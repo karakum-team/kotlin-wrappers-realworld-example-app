@@ -33,6 +33,7 @@ object DatabaseFactory {
     private fun runFlyway(datasource: DataSource) {
         val flyway = Flyway.configure()
             .dataSource(datasource)
+            .locations("org/jetbrains/kotlin/wrappers/realworld/db")
             .load()
         try {
             flyway.info()

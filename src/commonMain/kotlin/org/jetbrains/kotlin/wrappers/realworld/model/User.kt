@@ -9,11 +9,16 @@ data class User(
     val id: Uuid,
     val email: String,
     val username: String,
-    val password: String? = null,
     val token: String? = null,
     val bio: String? = null,
     val image: String? = null,
-    val following: Boolean? = null
+)
+
+@Serializable
+data class UserDraft(
+    val email: String,
+    val username: String,
+    val password: String,
 )
 
 @Serializable
