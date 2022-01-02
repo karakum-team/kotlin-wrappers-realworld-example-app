@@ -37,7 +37,11 @@ fun Route.userRouting(jwtConfig: JwtConfig, jwkProvider: JwkProvider, userServic
             val userDraft = call.receive<UserDraft>()
             val user = userService.createUser(userDraft)
 
-            call.respond(user.copy(token = generateToken(jwtConfig, jwkProvider, user)))
+            if (user == null) {
+                call.respondText("Wrong username or password", status = HttpStatusCode.BadRequest)
+            } else {
+                call.respond(user.copy(token = generateToken(jwtConfig, jwkProvider, user)))
+            }
         }
     }
 
