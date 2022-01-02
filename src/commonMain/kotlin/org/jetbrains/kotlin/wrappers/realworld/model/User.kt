@@ -22,6 +22,15 @@ data class UserDraft(
 )
 
 @Serializable
+data class UserInfo(
+    val email: String? = null,
+    val username: String? = null,
+    val password: String? = null,
+    val bio: String? = null,
+    val image: String? = null,
+)
+
+@Serializable
 data class Credentials(
     val email: String,
     val password: String,

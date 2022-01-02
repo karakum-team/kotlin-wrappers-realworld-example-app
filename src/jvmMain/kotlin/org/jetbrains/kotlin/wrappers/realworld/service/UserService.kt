@@ -1,9 +1,7 @@
 package org.jetbrains.kotlin.wrappers.realworld.service
 
 import com.benasher44.uuid.uuid4
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.kotlin.wrappers.realworld.crypto.hash
 import org.jetbrains.kotlin.wrappers.realworld.crypto.salt
@@ -11,6 +9,7 @@ import org.jetbrains.kotlin.wrappers.realworld.db.tables.Users
 import org.jetbrains.kotlin.wrappers.realworld.model.Credentials
 import org.jetbrains.kotlin.wrappers.realworld.model.User
 import org.jetbrains.kotlin.wrappers.realworld.model.UserDraft
+import org.jetbrains.kotlin.wrappers.realworld.model.UserInfo
 
 class UserService {
     fun authorize(credentials: Credentials) = transaction {
@@ -25,15 +24,7 @@ class UserService {
 
                 hash(password, salt).contentEquals(hash)
             }
-            .map {
-                User(
-                    id = it[Users.id],
-                    email = it[Users.email],
-                    username = it[Users.username],
-                    bio = it[Users.bio],
-                    image = it[Users.image],
-                )
-            }
+            .map(::toUser)
             .singleOrNull()
     }
 
@@ -65,4 +56,49 @@ class UserService {
             username = userDraft.username,
         )
     }
+
+    fun getUser(username: String) = transaction {
+        Users
+            .select {
+                Users.username eq username
+            }
+            .map(::toUser)
+            .singleOrNull()
+    }
+
+    fun updateUser(username: String, userInfo: UserInfo) = transaction {
+        val user = getUser(username) ?: return@transaction null
+
+        Users.update({ Users.id eq user.id }) { query ->
+            userInfo.email?.let { query[email] = it }
+            userInfo.username?.let { query[this.username] = it }
+
+            userInfo.password?.let {
+                val salt = salt()
+                val hash = hash(it, salt)
+
+                query[this.hash] = hash
+                query[this.salt] = salt
+            }
+
+            userInfo.bio?.let { query[bio] = it }
+            userInfo.image?.let { query[image] = it }
+        }
+
+        User(
+            id = user.id,
+            email = userInfo.email ?: user.email,
+            username = userInfo.username ?: user.username,
+            bio = userInfo.bio ?: user.bio,
+            image = userInfo.image ?: user.image,
+        )
+    }
+
+    private fun toUser(resultRow: ResultRow) = User(
+        id = resultRow[Users.id],
+        email = resultRow[Users.email],
+        username = resultRow[Users.username],
+        bio = resultRow[Users.bio],
+        image = resultRow[Users.image],
+    )
 }

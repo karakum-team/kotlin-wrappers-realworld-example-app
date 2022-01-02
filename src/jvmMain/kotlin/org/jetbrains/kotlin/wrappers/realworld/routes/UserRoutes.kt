@@ -5,14 +5,17 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.application.*
 import io.ktor.auth.*
+import io.ktor.auth.jwt.*
 import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.util.pipeline.*
 import org.jetbrains.kotlin.wrappers.realworld.crypto.JwtConfig
 import org.jetbrains.kotlin.wrappers.realworld.model.Credentials
 import org.jetbrains.kotlin.wrappers.realworld.model.User
 import org.jetbrains.kotlin.wrappers.realworld.model.UserDraft
+import org.jetbrains.kotlin.wrappers.realworld.model.UserInfo
 import org.jetbrains.kotlin.wrappers.realworld.service.UserService
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
@@ -47,7 +50,32 @@ fun Route.userRouting(jwtConfig: JwtConfig, jwkProvider: JwkProvider, userServic
 
     authenticate("auth-jwt") {
         route("/api/user") {
+            get {
+                val username = getUsername()
+                val user = userService.getUser(username)
 
+                if (user == null) {
+                    call.respondText("User is not found", status = HttpStatusCode.NotFound)
+                } else {
+                    call.respond(user)
+                }
+            }
+
+            put {
+                val username = getUsername()
+                val userInfo = call.receive<UserInfo>()
+                val user = userService.updateUser(username, userInfo)
+
+                if (user == null) {
+                    call.respondText("User is not found", status = HttpStatusCode.NotFound)
+                } else {
+                    userInfo.username?.let {
+                        call.respond(user.copy(token = generateToken(jwtConfig, jwkProvider, user)))
+                    } ?: run {
+                        call.respond(user)
+                    }
+                }
+            }
         }
     }
 }
@@ -63,4 +91,9 @@ private fun generateToken(jwtConfig: JwtConfig, jwkProvider: JwkProvider, user: 
         .withClaim("username", user.username)
         .withExpiresAt(Date(System.currentTimeMillis() + 60000))
         .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
+}
+
+private fun PipelineContext<*, ApplicationCall>.getUsername(): String {
+    val principal = requireNotNull(call.principal<JWTPrincipal>())
+    return principal.payload.getClaim("username").asString()
 }
