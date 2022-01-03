@@ -17,7 +17,9 @@ import io.ktor.server.netty.*
 import kotlinx.html.*
 import org.jetbrains.kotlin.wrappers.realworld.crypto.JwtConfig
 import org.jetbrains.kotlin.wrappers.realworld.db.DatabaseFactory
+import org.jetbrains.kotlin.wrappers.realworld.routes.profileRouting
 import org.jetbrains.kotlin.wrappers.realworld.routes.userRouting
+import org.jetbrains.kotlin.wrappers.realworld.service.FollowingService
 import org.jetbrains.kotlin.wrappers.realworld.service.UserService
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -41,6 +43,7 @@ fun main() {
     DatabaseFactory.init()
 
     val userService = UserService()
+    val followingService = FollowingService()
 
     embeddedServer(Netty, environment = applicationEngineEnvironment {
         config = HoconApplicationConfig(ConfigFactory.load())
@@ -100,6 +103,7 @@ fun main() {
                 }
 
                 userRouting(jwtConfig, jwkProvider, userService)
+                profileRouting(userService, followingService)
             }
         }
     }).start(wait = true)

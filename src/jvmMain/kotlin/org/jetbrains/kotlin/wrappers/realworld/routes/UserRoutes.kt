@@ -43,7 +43,10 @@ fun Route.userRouting(jwtConfig: JwtConfig, jwkProvider: JwkProvider, userServic
             if (user == null) {
                 call.respondText("Wrong username or password", status = HttpStatusCode.BadRequest)
             } else {
-                call.respond(user.copy(token = generateToken(jwtConfig, jwkProvider, user)))
+                call.respond(
+                    message = user.copy(token = generateToken(jwtConfig, jwkProvider, user)),
+                    status = HttpStatusCode.Created
+                )
             }
         }
     }
@@ -93,7 +96,9 @@ private fun generateToken(jwtConfig: JwtConfig, jwkProvider: JwkProvider, user: 
         .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
 }
 
-private fun PipelineContext<*, ApplicationCall>.getUsername(): String {
-    val principal = requireNotNull(call.principal<JWTPrincipal>())
+fun PipelineContext<*, ApplicationCall>.getUsernameOrNull(): String? {
+    val principal = call.principal<JWTPrincipal>() ?: return null
     return principal.payload.getClaim("username").asString()
 }
+
+fun PipelineContext<*, ApplicationCall>.getUsername() = requireNotNull(getUsernameOrNull())
