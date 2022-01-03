@@ -29,10 +29,13 @@ class FollowingService {
         followerUsername: String,
         followedUsername: String,
     ) = transaction {
-        val followerId = selectUserId(followerUsername)
+        val followerId = Users
+            .selectUserId(followerUsername)
             .map { it[Users.id] }
             .single()
-        val followedId = selectUserId(followedUsername)
+
+        val followedId = Users
+            .selectUserId(followedUsername)
             .map { it[Users.id] }
             .single()
 
@@ -50,17 +53,12 @@ class FollowingService {
     ) = transaction {
 
         Following.deleteWhere {
-            (Following.followerId inSubQuery selectUserId(followerUsername)) and
-                    (Following.followedId inSubQuery selectUserId(followedUsername))
+            (Following.followerId inSubQuery Users.selectUserId(followerUsername)) and
+                    (Following.followedId inSubQuery Users.selectUserId(followedUsername))
         }
 
         Unit
     }
 
-    private fun selectUserId(username: String) =
-        Users
-            .slice(Users.id)
-            .select {
-                Users.username eq username
-            }
+    private fun Users.selectUserId(username: String) = slice(id).select { Users.username eq username }
 }
