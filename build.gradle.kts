@@ -57,7 +57,11 @@ kotlin {
                 implementation("org.flywaydb:flyway-core:8.3.0")
             }
         }
-        val jvmTest by getting
+        val jvmTest by getting {
+            dependencies {
+                implementation("io.ktor:ktor-server-test-host:1.6.7")
+            }
+        }
         val jsMain by getting {
             dependencies {
             }
