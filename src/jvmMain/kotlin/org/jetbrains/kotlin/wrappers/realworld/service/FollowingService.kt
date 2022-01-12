@@ -10,16 +10,11 @@ class FollowingService {
         followerUsername: String,
         followedUsername: String,
     ) = transaction {
-        val (followingUsers, followedUsers) = Users.aliases(
-            followerUsername,
-            followedUsername,
-        )
-
         Following
-            .join(followingUsers, JoinType.INNER, Following.followerId, followingUsers[Users.id])
-            .join(followedUsers, JoinType.INNER, Following.followedId, followedUsers[Users.id])
-            .slice(booleanLiteral(true))
-            .selectAll()
+            .select {
+                (Following.followerId inSubQuery Users.selectUserId(followerUsername)) and
+                        (Following.followedId inSubQuery Users.selectUserId(followedUsername))
+            }
             .empty()
             .let { !it }
     }
@@ -28,10 +23,8 @@ class FollowingService {
         followerUsername: String,
         followedUsername: String,
     ) = transaction {
-        val (followingUsers, followedUsers) = Users.aliases(
-            followerUsername,
-            followedUsername,
-        )
+        val followingUsers = Users.selectUserId(followerUsername).alias("following_users")
+        val followedUsers = Users.selectUserId(followedUsername).alias("followed_users")
 
         Following.insert(
             (followingUsers crossJoin followedUsers)
@@ -54,23 +47,14 @@ class FollowingService {
         followedUsername: String,
     ) = transaction {
 
-        Following.deleteWhere {
-            (Following.followerId inSubQuery Users.selectUserId(followerUsername)) and
-                    (Following.followedId inSubQuery Users.selectUserId(followedUsername))
-        }
+        Following
+            .deleteWhere {
+                (Following.followerId inSubQuery Users.selectUserId(followerUsername)) and
+                        (Following.followedId inSubQuery Users.selectUserId(followedUsername))
+            }
 
         Unit
     }
 
     private fun Users.selectUserId(username: String) = slice(id).select { Users.username eq username }
-
-    private fun Users.aliases(
-        followerUsername: String,
-        followedUsername: String,
-    ): Pair<QueryAlias, QueryAlias> {
-        val followingUsers = selectUserId(followerUsername).alias("following_users")
-        val followedUsers = selectUserId(followedUsername).alias("followed_users")
-
-        return followingUsers to followedUsers
-    }
 }
