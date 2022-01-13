@@ -22,12 +22,14 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.wrappers.realworld.crypto.Jwks
 import org.jetbrains.kotlin.wrappers.realworld.crypto.JwtConfig
 import org.jetbrains.kotlin.wrappers.realworld.db.DatabaseFactory
+import org.jetbrains.kotlin.wrappers.realworld.db.crateHikariDataSource
 import org.jetbrains.kotlin.wrappers.realworld.routes.profileRouting
 import org.jetbrains.kotlin.wrappers.realworld.routes.userRouting
 import org.jetbrains.kotlin.wrappers.realworld.service.FollowingService
 import org.jetbrains.kotlin.wrappers.realworld.service.UserService
 import java.io.File
 import java.util.concurrent.TimeUnit
+import javax.sql.DataSource
 
 fun HTML.index() {
     head {
@@ -52,12 +54,12 @@ fun main() {
             port = 8080
         }
 
-        module { init() }
+        module { init(crateHikariDataSource()) }
     }).start(wait = true)
 }
 
-fun Application.init(testing: Boolean = false) {
-    DatabaseFactory.init()
+fun Application.init(dataSource: DataSource, testing: Boolean = false) {
+    DatabaseFactory(dataSource)
 
     val userService = UserService()
     val followingService = FollowingService()
