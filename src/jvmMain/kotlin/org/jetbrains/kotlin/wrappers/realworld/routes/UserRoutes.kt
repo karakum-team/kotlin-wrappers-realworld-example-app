@@ -84,11 +84,13 @@ fun Route.userRouting(jwtConfig: JwtConfig, jwkProvider: JwkProvider, userServic
 }
 
 private fun generateToken(jwtConfig: JwtConfig, jwkProvider: JwkProvider, user: User): String {
-    val publicKey = jwkProvider.get("138248dc-88dc-4562-b642-b418243c2851").publicKey
+    val keyId = "138248dc-88dc-4562-b642-b418243c2851"
+    val publicKey = jwkProvider.get(keyId).publicKey
     val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(jwtConfig.privateKey))
     val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
 
     return JWT.create()
+        .withKeyId(keyId)
         .withAudience(jwtConfig.audience)
         .withIssuer(jwtConfig.issuer)
         .withClaim("username", user.username)

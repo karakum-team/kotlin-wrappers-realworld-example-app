@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.wrappers.realworld.db.crateHikariDataSource
 import org.jetbrains.kotlin.wrappers.realworld.model.Credentials
 import org.jetbrains.kotlin.wrappers.realworld.model.User
 import org.jetbrains.kotlin.wrappers.realworld.model.UserDraft
+import org.jetbrains.kotlin.wrappers.realworld.model.UserInfo
 import org.jetbrains.kotlin.wrappers.realworld.prepareTestEnvironment
 import kotlin.test.*
 
@@ -113,6 +114,90 @@ class UserRoutesTest {
                 )
             }) {
                 assertEquals(HttpStatusCode.BadRequest, response.status())
+            }
+        }
+    }
+
+    @Test
+    fun testUnknownUserLogin() {
+        withApplication(prepareTestEnvironment(dataSource)) {
+            with(handleRequest(HttpMethod.Post, "/api/users/login") {
+                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+
+                setBody(
+                    Json.encodeToString(
+                        Credentials(
+                            email = "test_user@gmail.com",
+                            password = "querty",
+                        )
+                    )
+                )
+            }) {
+                assertEquals(HttpStatusCode.Unauthorized, response.status())
+            }
+        }
+    }
+
+    @Test
+    fun testUserInfoUpdate() {
+        withApplication(prepareTestEnvironment(dataSource)) {
+            val token: String
+
+            with(handleRequest(HttpMethod.Post, "/api/users") {
+                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+
+                setBody(
+                    Json.encodeToString(
+                        UserDraft(
+                            email = "test_user@gmail.com",
+                            username = "test_user",
+                            password = "querty",
+                        )
+                    )
+                )
+            }) {
+                assertEquals(HttpStatusCode.Created, response.status())
+
+                val user = Json.decodeFromString<User>(response.content ?: "")
+
+                token = checkNotNull(user.token)
+            }
+
+            with(handleRequest(HttpMethod.Put, "/api/user") {
+                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                addHeader(HttpHeaders.Authorization, "Bearer $token")
+
+                setBody(
+                    Json.encodeToString(
+                        UserInfo(
+                            email = "second_test_user@gmail.com",
+                            bio = "I am a developer",
+                            image = "Here is my pic",
+                        )
+                    )
+                )
+            }) {
+                assertEquals(HttpStatusCode.OK, response.status())
+
+                val user = Json.decodeFromString<User>(response.content ?: "")
+
+                assertEquals("second_test_user@gmail.com", user.email)
+                assertEquals("test_user", user.username)
+                assertEquals("I am a developer", user.bio)
+                assertEquals("Here is my pic", user.image)
+            }
+
+            with(handleRequest(HttpMethod.Get, "/api/user") {
+                addHeader(HttpHeaders.Authorization, "Bearer $token")
+            }) {
+                assertEquals(HttpStatusCode.OK, response.status())
+
+                val user = Json.decodeFromString<User>(response.content ?: "")
+
+                assertEquals("second_test_user@gmail.com", user.email)
+                assertEquals("test_user", user.username)
+                assertEquals("I am a developer", user.bio)
+                assertEquals("Here is my pic", user.image)
             }
         }
     }
